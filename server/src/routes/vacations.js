@@ -6,7 +6,7 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 
 router.use(authMiddleware);
 
-// Create vacation request
+// Созадть запрос на заявку
 router.post('/', async (req, res) => {
   try {
     const { employee_id, start_date, end_date, type, comment } = req.body;
@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'Дата окончания не может быть раньше даты начала' });
     }
 
-    // common users can only create for themselves
+    // Обычные пользователи могут создавать заявки только на себя
     const targetEmployeeId = req.user.role === 'common' ? req.user.employee_id : employee_id;
 
     if (!targetEmployeeId) {
@@ -41,7 +41,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get my / department / all requests
+// Получить заявки (только свои / отдела / все)
 router.get('/my', async (req, res) => {
   try {
     let requests;
@@ -61,7 +61,7 @@ router.get('/my', async (req, res) => {
   }
 });
 
-// Get pending requests for approval (head, admin)
+// Получить заявки на утверждение (head, admin)
 router.get('/pending', roleMiddleware(['head', 'admin']), async (req, res) => {
   try {
     let requests;
@@ -79,7 +79,7 @@ router.get('/pending', roleMiddleware(['head', 'admin']), async (req, res) => {
   }
 });
 
-// Get ordered requests (hr, admin)
+// Получить отработанные заявки (hr, admin)
 router.get('/ordered', roleMiddleware(['hr', 'admin']), async (req, res) => {
   try {
     const requests = await VacationRequest.findAllOrdered();
@@ -90,7 +90,7 @@ router.get('/ordered', roleMiddleware(['hr', 'admin']), async (req, res) => {
   }
 });
 
-// Get approved requests for order creation (hr, admin)
+// Получить утвержденные заявки для создания приказа (hr, admin)
 router.get('/approved', roleMiddleware(['hr', 'admin']), async (req, res) => {
   try {
     const requests = await VacationRequest.findAllApproved();
@@ -101,7 +101,7 @@ router.get('/approved', roleMiddleware(['hr', 'admin']), async (req, res) => {
   }
 });
 
-// Approve request (head, admin)
+// Утвердить заявку (head, admin)
 router.put('/:id/approve', roleMiddleware(['head', 'admin']), async (req, res) => {
   try {
     const request = await VacationRequest.findById(req.params.id);
@@ -114,7 +114,7 @@ router.put('/:id/approve', roleMiddleware(['head', 'admin']), async (req, res) =
       return res.status(400).json({ error: 'Заявка уже обработана' });
     }
 
-    // head can only approve requests from their department
+    // Руководитель может утверждать заявки только своего подразделения
     if (req.user.role === 'head' && request.department_id !== req.user.employee?.department_id) {
       return res.status(403).json({ error: 'Недостаточно прав для утверждения этой заявки' });
     }
@@ -127,7 +127,7 @@ router.put('/:id/approve', roleMiddleware(['head', 'admin']), async (req, res) =
   }
 });
 
-// Reject request (head, admin)
+// Отклонить заявку (head, admin)
 router.put('/:id/reject', roleMiddleware(['head', 'admin']), async (req, res) => {
   try {
     const { reason } = req.body;
@@ -153,7 +153,7 @@ router.put('/:id/reject', roleMiddleware(['head', 'admin']), async (req, res) =>
   }
 });
 
-// Cancel request (requester, admin)
+// Отменить заявку (requester, admin)
 router.put('/:id/cancel', async (req, res) => {
   try {
     const request = await VacationRequest.findById(req.params.id);
@@ -182,7 +182,7 @@ router.put('/:id/cancel', async (req, res) => {
   }
 });
 
-// Return to pending (hr, admin) — when HR rejects an order
+// Вернуть заявку на рассмотрение (hr, admin) — когда HR отклоняет заявку в приказе
 router.put('/:id/return', roleMiddleware(['hr', 'admin']), async (req, res) => {
   try {
     const request = await VacationRequest.findById(req.params.id);

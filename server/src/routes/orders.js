@@ -9,7 +9,7 @@ const roleMiddleware = require('../middleware/roleMiddleware');
 router.use(authMiddleware);
 router.use(roleMiddleware(['hr', 'admin']));
 
-// Get all orders
+// Получить все приказы
 router.get('/', async (req, res) => {
   try {
     const filters = {
@@ -24,7 +24,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get order by ID
+// Получить приказ по ID
 router.get('/:id', async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);
@@ -38,7 +38,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create order
+// Создать приказ
 router.post('/', async (req, res) => {
   try {
     const { order_number, order_date, type, employee_id, vacation_request_id, content, signed_by } = req.body;
@@ -58,7 +58,7 @@ router.post('/', async (req, res) => {
       created_by: req.user.employee_id
     });
 
-    // If linked to a vacation request, mark it as ordered
+    // Если привязывается vacation request, то помечает его как ordered
     if (vacation_request_id) {
       await VacationRequest.markOrdered(vacation_request_id);
     }
@@ -70,7 +70,7 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Update order
+// Обновить приказ
 router.put('/:id', async (req, res) => {
   try {
     const { order_number, order_date, content, signed_by } = req.body;
@@ -98,7 +98,7 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// Delete order (returns vacation request to pending if linked)
+// Удалить приказ (вернуть vacation request в состояние pending, если связан с этим приказом)
 router.delete('/:id', async (req, res) => {
   try {
     const order = await Order.findById(req.params.id);

@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
 class VacationRequest {
+  // Найти все заявки на отпуск
   static async findAll(filters = {}) {
     let query = `
       SELECT 
@@ -48,6 +49,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти заявку по ID сотрудника
   static async findByEmployee(employeeId) {
     const query = `
       SELECT 
@@ -67,6 +69,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти заявку, ожидающую утверждения для конкретного отдела
   static async findPendingByDepartment(departmentId) {
     const query = `
       SELECT 
@@ -84,6 +87,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти все заявки, ожидающие утверждения
   static async findAllPending() {
     const query = `
       SELECT 
@@ -101,6 +105,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти все заявки, оформленные в приказе
   static async findAllOrdered() {
     const query = `
       SELECT 
@@ -118,6 +123,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти все утвержденные заявки
   static async findAllApproved() {
     const query = `
       SELECT 
@@ -135,6 +141,7 @@ class VacationRequest {
     return result.rows;
   }
 
+  // Найти заявку по ID
   static async findById(id) {
     const query = `
       SELECT 
@@ -154,6 +161,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Создать заявку
   static async create(data) {
     const query = `
       INSERT INTO vacation_requests (
@@ -174,6 +182,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Утвердить заявку
   static async approve(id, approverId) {
     const query = `
       UPDATE vacation_requests
@@ -186,6 +195,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Отправить заявку на повторное согласование
   static async reject(id, approverId, reason) {
     const query = `
       UPDATE vacation_requests
@@ -198,6 +208,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Отменить заявку
   static async cancel(id, requesterId) {
     const query = `
       UPDATE vacation_requests
@@ -210,6 +221,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Пометить заявку как вошедшую в приказ
   static async markOrdered(id) {
     const query = `
       UPDATE vacation_requests
@@ -222,6 +234,7 @@ class VacationRequest {
     return result.rows[0];
   }
 
+  // Вернуть статус заявки в ожидание
   static async returnToPending(id) {
     const query = `
       UPDATE vacation_requests
