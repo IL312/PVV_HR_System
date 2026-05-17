@@ -18,12 +18,12 @@ const Sidebar: React.FC = () => {
 
   const menuItems = [
     { icon: HomeIcon, path: '/', label: 'Главная' },
-    ...(isAdmin() ? [{ icon: SettingsIcon, path: '/settings', label: 'Настройки' }] : []),
     { icon: DocIcon, path: '/vacations', label: 'Документы' },
     ...(hasAnyRole([ROLES.ADMIN, ROLES.HEAD, ROLES.HR, ROLES.ACC])
-      ? [{ icon: DataIcon, path: '/reports', label: 'Отчёты' }]
-      : []),
+    ? [{ icon: DataIcon, path: '/reports', label: 'Отчёты' }]
+    : []),
     { icon: UserIcon, path: `/employee/${user?.employee?.id}`, label: 'Профиль' },
+    ...(isAdmin() ? [{ icon: SettingsIcon, path: '/settings', label: 'Настройки' }] : []),
   ];
 
   const handleLogout = () => {
