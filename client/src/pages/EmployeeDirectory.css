@@ -1,0 +1,33 @@
+@import '../styles/variables.css';
+
+.employee-directory {
+  display: flex;
+  gap: var(--space-xl);
+}
+
+.main-content {
+  flex: 1;
+}
+
+.sidebar-profile {
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.employees-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-xl);
+}
+
+@media (max-width: 1200px) {
+  .sidebar-profile {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .employees-grid {
+    grid-template-columns: 1fr;
+  }
+}

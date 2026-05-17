@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Department, Position, EmployeeFilters } from '../types';
 import { employeeApi } from '../api/employeeApi';
+import { useRole, ROLES } from '../hooks/useRole';
 import SearchIcon from '../assets/icons/search.png';
+import './FilterPanel.css';
 
 interface FilterPanelProps {
   filters: EmployeeFilters;
@@ -11,10 +13,10 @@ interface FilterPanelProps {
 
 const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) => {
   const navigate = useNavigate();
+  const { hasAnyRole } = useRole();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
 
-  // Загружаем справочники один раз при монтировании
   useEffect(() => {
     const fetchData = async () => {
       const [depts, pos] = await Promise.all([
@@ -28,7 +30,6 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
   }, []);
 
   const handleChange = (key: keyof EmployeeFilters, value: any) => {
-    // Передаем новые фильтры наверх
     onFilterChange({ ...filters, [key]: value });
   };
 
@@ -128,7 +129,9 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ filters, onFilterChange }) =>
         </div>
 
         <div className="filter-actions">
-          <button className="btn btn-primary" onClick={() => navigate('/employee/add')}>Добавить сотрудника</button>
+          {hasAnyRole([ROLES.ADMIN, ROLES.HR]) && (
+            <button className="btn btn-primary" onClick={() => navigate('/employee/add')}>Добавить сотрудника</button>
+          )}
           <button className="btn btn-secondary">Экспорт</button>
         </div>
       </div>

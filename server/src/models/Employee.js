@@ -125,6 +125,44 @@ class Employee {
     const result = await pool.query(query, values);
     return result.rows[0];
   }
+
+  // Обновить сотрудника
+  static async update(id, employeeData) {
+    const fields = [];
+    const values = [];
+    let paramIndex = 1;
+
+    const updatableFields = [
+      'last_name', 'first_name', 'middle_name', 'passport', 'snils',
+      'phone', 'email', 'birth_date', 'registration_address',
+      'department_id', 'position_id', 'hire_date', 'salary', 'status'
+    ];
+
+    for (const field of updatableFields) {
+      if (employeeData[field] !== undefined) {
+        fields.push(`${field} = $${paramIndex}`);
+        values.push(employeeData[field]);
+        paramIndex++;
+      }
+    }
+
+    if (fields.length === 0) {
+      return this.findById(id);
+    }
+
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
+    values.push(id);
+
+    const query = `
+      UPDATE employees 
+      SET ${fields.join(', ')} 
+      WHERE id = $${paramIndex}
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
 }
 
 module.exports = Employee;

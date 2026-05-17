@@ -1,21 +1,27 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRole, ROLES } from '../hooks/useRole';
 import HomeIcon from '../assets/icons/home.png';
 import SettingsIcon from '../assets/icons/settings.png';
 import DataIcon from '../assets/icons/data.png';
 import UserIcon from '../assets/icons/user.png';
 import LogoutIcon from '../assets/icons/logout.png';
+import './Sidebar.css';
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { hasAnyRole, isAdmin } = useRole();
 
   const menuItems = [
     { icon: HomeIcon, path: '/', label: 'Главная' },
-    { icon: SettingsIcon, path: '/settings', label: 'Настройки' },
-    { icon: DataIcon, path: '/reports', label: 'Отчеты' },
+    ...(isAdmin() ? [{ icon: SettingsIcon, path: '/settings', label: 'Настройки' }] : []),
+    { icon: DataIcon, path: '/vacations', label: 'Документы' },
+    ...(hasAnyRole([ROLES.ADMIN, ROLES.HEAD, ROLES.HR, ROLES.ACC])
+      ? [{ icon: DataIcon, path: '/reports', label: 'Отчёты' }]
+      : []),
     { icon: UserIcon, path: `/employee/${user?.employee?.id}`, label: 'Профиль' },
   ];
 

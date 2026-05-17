@@ -18,10 +18,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Проверяем сохраненный токен/юзера при загрузке
     const storedUser = localStorage.getItem('hr_user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${localStorage.getItem('hr_token')}`;
     }
     setLoading(false);
   }, []);
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const userData = response.data.user;
       setUser(userData);
       localStorage.setItem('hr_user', JSON.stringify(userData));
-      // Устанавливаем токен для будущих запросов
+      localStorage.setItem('hr_token', response.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
     } catch (error: any) {
       throw new Error(error.response?.data?.error || 'Ошибка входа');
@@ -42,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('hr_user');
+    localStorage.removeItem('hr_token');
     delete axios.defaults.headers.common['Authorization'];
   };
 

@@ -1,0 +1,38 @@
+@import '../../styles/variables.css';
+
+.chart-container {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-report);
+}
+
+.chart-title {
+  margin: 0 0 var(--space-xl) 0;
+  font-size: var(--font-lg);
+  color: var(--text-page-header);
+  text-align: center;
+}
+
+.recharts-tooltip-wrapper {
+  font-size: var(--font-sm) !important;
+}
+
+.recharts-default-legend {
+  margin-top: var(--space-md) !important;
+}
+
+.recharts-text {
+  font-size: var(--font-xs) !important;
+  fill: var(--text-secondary) !important;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    padding: var(--space-lg);
+  }
+  
+  .recharts-text {
+    font-size: 10px !important;
+  }
+}

@@ -4,10 +4,21 @@ const pool = require('../config/db');
 const Employee = require('../models/Employee');
 const Department = require('../models/Department');
 const Position = require('../models/Position');
+const { authMiddleware } = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+
+// Apply auth to all employee routes
+router.use(authMiddleware);
 
 // Get all employees with filters
 router.get('/', async (req, res) => {
   try {
+    // common users can only see their own profile
+    if (req.user.role === 'common') {
+      const employee = await Employee.findById(req.user.employee_id);
+      return res.json(employee ? [employee] : []);
+    }
+
     const filters = {
       department_id: req.query.department_id,
       position_id: req.query.position_id,
@@ -28,6 +39,11 @@ router.get('/', async (req, res) => {
 // Get employee by ID
 router.get('/:id', async (req, res) => {
   try {
+    // common users can only view their own profile
+    if (req.user.role === 'common' && req.params.id !== String(req.user.employee_id)) {
+      return res.status(403).json({ error: 'Недостаточно прав для просмотра' });
+    }
+
     const employee = await Employee.findById(req.params.id);
     if (!employee) {
       return res.status(404).json({ error: 'Employee not found' });
@@ -61,12 +77,11 @@ router.get('/meta/positions', async (req, res) => {
   }
 });
 
-// Create new employee
-router.post('/', async (req, res) => {
+// Create new employee — admin and hr only
+router.post('/', roleMiddleware(['admin', 'hr']), async (req, res) => {
   try {
     const employeeData = req.body;
     
-    // Валидация обязательных полей
     const requiredFields = ['last_name', 'first_name', 'passport', 'phone', 'email', 'birth_date', 'department_id', 'position_id', 'hire_date', 'salary'];
     const missingFields = requiredFields.filter(field => !employeeData[field]);
     
@@ -76,7 +91,6 @@ router.post('/', async (req, res) => {
       });
     }
 
-    // Проверяем уникальность passport и email
     const existingPassport = await pool.query(
       'SELECT id FROM employees WHERE passport = $1',
       [employeeData.passport]
@@ -101,6 +115,25 @@ router.post('/', async (req, res) => {
   } catch (error) {
     console.error('Error creating employee:', error);
     res.status(500).json({ error: 'Failed to create employee' });
+  }
+});
+
+// Update employee — admin only
+router.put('/:id', roleMiddleware(['admin']), async (req, res) => {
+  try {
+    const employeeData = req.body;
+
+    const existingEmployee = await Employee.findById(req.params.id);
+    if (!existingEmployee) {
+      return res.status(404).json({ error: 'Сотрудник не найден' });
+    }
+
+    const updatedEmployee = await Employee.update(req.params.id, employeeData);
+    res.json(updatedEmployee);
+    console.log('✅ Employee updated successfully');
+  } catch (error) {
+    console.error('Error updating employee:', error);
+    res.status(500).json({ error: 'Failed to update employee' });
   }
 });
 

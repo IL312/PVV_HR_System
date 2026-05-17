@@ -26,6 +26,11 @@ export const employeeApi = {
     return response.data;
   },
 
+  update: async (id: number, employeeData: Partial<Employee>) => {
+    const response = await axios.put(`${API_URL}/employees/${id}`, employeeData);
+    return response.data;
+  },
+
   getDepartments: async () => {
     const response = await axios.get(`${API_URL}/employees/meta/departments`);
     return response.data;

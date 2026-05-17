@@ -4,23 +4,16 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import EmployeeDirectory from './pages/EmployeeDirectory';
 import EmployeeDetail from './pages/EmployeeDetail';
+import EditEmployee from './pages/EditEmployee';
 import Login from './pages/Login';
 import AddEmployee from './pages/AddEmployee';
 import Reports from './pages/Reports';
+import Unauthorized from './pages/Unauthorized';
+import Vacations from './pages/Vacations';
+import VacationNew from './pages/VacationNew';
+import ProtectedRoute from './components/ProtectedRoute';
+import { ROLES } from './hooks/useRole';
 import './App.css';
-
-// Компонент для защиты маршрутов
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) return <div className="loading">Загрузка...</div>;
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   return (
@@ -35,6 +28,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/unauthorized" element={<Unauthorized />} />
       <Route
         path="/"
         element={
@@ -58,9 +52,19 @@ function AppRoutes() {
       <Route
         path="/employee/add"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoles={[ROLES.ADMIN, ROLES.HR]}>
             <Layout>
               <AddEmployee />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/employee/:id/edit"
+        element={
+          <ProtectedRoute requiredRoles={[ROLES.ADMIN]}>
+            <Layout>
+              <EditEmployee />
             </Layout>
           </ProtectedRoute>
         }
@@ -68,12 +72,32 @@ function AppRoutes() {
       <Route 
         path="/reports" 
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRoles={[ROLES.ADMIN, ROLES.HEAD, ROLES.HR, ROLES.ACC]}>
             <Layout>
               <Reports />
             </Layout>
           </ProtectedRoute>
         } 
+      />
+      <Route
+        path="/vacations"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Vacations />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vacations/new"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <VacationNew />
+            </Layout>
+          </ProtectedRoute>
+        }
       />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

@@ -3,12 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import type { Employee } from '../types';
 import { employeeApi } from '../api/employeeApi';
 import ProfileCard from '../components/ProfileCard';
+import { useAuth } from '../context/AuthContext';
+import { useRole, ROLES } from '../hooks/useRole';
 import declOfYears from '../utils';
 import avatar from '../assets/avatar.png';
+import './EmployeeDetail.css';
 
 const EmployeeDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { hasAnyRole, isCommon } = useRole();
   const [employee, setEmployee] = useState<Employee | null>(null);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
@@ -20,10 +25,10 @@ const EmployeeDetail: React.FC = () => {
         const empData = await employeeApi.getById(Number(id));
         setEmployee(empData);
 
-        // Load current user
-        const allEmployees = await employeeApi.getAll({});
-        const user = allEmployees.find((e: Employee) => e.id === 1);
-        setCurrentUser(user || null);
+        if (user?.employee?.id) {
+          const currentEmp = await employeeApi.getById(user.employee.id);
+          setCurrentUser(currentEmp || null);
+        }
       } catch (error) {
         console.error('Error fetching employee:', error);
       } finally {
@@ -32,7 +37,7 @@ const EmployeeDetail: React.FC = () => {
     };
 
     fetchData();
-  }, [id]);
+  }, [id, user?.employee?.id]);
 
   if (loading) {
     return <div className="loading">Загрузка...</div>;
@@ -56,7 +61,9 @@ const EmployeeDetail: React.FC = () => {
           </button>
           <div className="header-actions">
             <button className="action-btn">🖨️</button>
-            <button className="action-btn">✏️</button>
+            {hasAnyRole([ROLES.ADMIN]) && (
+              <button className="action-btn" onClick={() => navigate(`/employee/${id}/edit`)}>✏️</button>
+            )}
             <button className="btn btn-primary">Экспорт</button>
             <div className="search-box">
               <input type="text" placeholder="Поиск данных" />
@@ -78,10 +85,12 @@ const EmployeeDetail: React.FC = () => {
                   <span className="label">Дата рождения:</span>
                   <span className="value">{new Date(employee.birth_date).toLocaleDateString('ru-RU')}</span>
                 </div>
-                <div className="info-item">
-                  <span className="label">Паспорт:</span>
-                  <span className="value">{employee.passport}</span>
-                </div>
+                {!isCommon() && (
+                  <div className="info-item">
+                    <span className="label">Паспорт:</span>
+                    <span className="value">{employee.passport}</span>
+                  </div>
+                )}
                 <div className="info-item">
                   <span className="label">Регистрация:</span>
                   <span className="value">{employee.registration_address}</span>
@@ -90,10 +99,12 @@ const EmployeeDetail: React.FC = () => {
                   <span className="label">Стаж работы:</span>
                   <span className="value">{declOfYears(employee.experience_years)}</span>
                 </div>
-                <div className="info-item">
-                  <span className="label">Оклад:</span>
-                  <span className="value">{employee.salary.toLocaleString('ru-RU')} ₽</span>
-                </div>
+                {!isCommon() && (
+                  <div className="info-item">
+                    <span className="label">Оклад:</span>
+                    <span className="value">{employee.salary.toLocaleString('ru-RU')} ₽</span>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -176,10 +187,12 @@ const EmployeeDetail: React.FC = () => {
                 <span>Стаж:</span>
                 <span>{declOfYears(employee.experience_years)}</span>
               </div>
-              <div className="info-row">
-                <span>Оклад:</span>
-                <span>{employee.salary.toLocaleString('ru-RU')} ₽</span>
-              </div>
+              {!isCommon() && (
+                <div className="info-row">
+                  <span>Оклад:</span>
+                  <span>{employee.salary.toLocaleString('ru-RU')} ₽</span>
+                </div>
+              )}
             </div>
           </div>
         </div>

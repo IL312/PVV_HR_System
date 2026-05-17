@@ -4,6 +4,8 @@ const pool = require('./config/db');
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employees');
 const reportRoutes = require('./routes/reports');
+const vacationRoutes = require('./routes/vacations');
+const orderRoutes = require('./routes/orders');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -16,6 +18,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/vacations', vacationRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Health check
 app.get('/api/health', async (req, res) => {

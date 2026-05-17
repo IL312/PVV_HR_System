@@ -4,6 +4,7 @@ import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import type { ChartDataPoint } from '../../types';
+import './ChartComponent.css';
 
 interface PieChartProps {
   data: ChartDataPoint[];

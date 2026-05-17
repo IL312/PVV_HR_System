@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { employeeApi } from '../api/employeeApi';
 import type { Department, Position, Employee } from '../types';
 import './AddEmployee.css';
 
-interface AddEmployeeForm {
+interface EditEmployeeForm {
   last_name: string;
   first_name: string;
   middle_name: string;
@@ -14,21 +14,23 @@ interface AddEmployeeForm {
   email: string;
   birth_date: string;
   registration_address: string;
-  department_id: string; // В форме храним как строку, конвертируем при отправке
+  department_id: string;
   position_id: string;
   hire_date: string;
   salary: string;
-  status: Employee['status']; // Строгий тип сразу
+  status: Employee['status'];
 }
 
-const AddEmployee: React.FC = () => {
+const EditEmployee: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [error, setError] = useState('');
   
-  const [formData, setFormData] = useState<AddEmployeeForm>({
+  const [formData, setFormData] = useState<EditEmployeeForm>({
     last_name: '',
     first_name: '',
     middle_name: '',
@@ -46,20 +48,42 @@ const AddEmployee: React.FC = () => {
   });
 
   useEffect(() => {
-    const fetchMeta = async () => {
+    const fetchData = async () => {
       try {
-        const [depts, pos] = await Promise.all([
+        const [empData, depts, pos] = await Promise.all([
+          employeeApi.getById(Number(id)),
           employeeApi.getDepartments(),
           employeeApi.getPositions()
         ]);
+
+        setFormData({
+          last_name: empData.last_name || '',
+          first_name: empData.first_name || '',
+          middle_name: empData.middle_name || '',
+          passport: empData.passport || '',
+          snils: empData.snils || '',
+          phone: empData.phone || '',
+          email: empData.email || '',
+          birth_date: empData.birth_date ? new Date(empData.birth_date).toISOString().split('T')[0] : '',
+          registration_address: empData.registration_address || '',
+          department_id: String(empData.department_id || ''),
+          position_id: String(empData.position_id || ''),
+          hire_date: empData.hire_date ? new Date(empData.hire_date).toISOString().split('T')[0] : '',
+          salary: String(empData.salary || ''),
+          status: empData.status || 'active'
+        });
+
         setDepartments(depts);
         setPositions(pos);
       } catch (err) {
-        console.error('Error fetching metadata:', err);
+        console.error('Error fetching data:', err);
+        setError('Не удалось загрузить данные сотрудника');
+      } finally {
+        setFetching(false);
       }
     };
-    fetchMeta();
-  }, []);
+    fetchData();
+  }, [id]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -79,22 +103,26 @@ const AddEmployee: React.FC = () => {
         salary: Number(formData.salary),
       };
 
-      await employeeApi.create(employeeData);
-      navigate('/');
+      await employeeApi.update(Number(id), employeeData);
+      navigate(`/employee/${id}`);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Ошибка при создании сотрудника');
+      setError(err.response?.data?.error || 'Ошибка при обновлении сотрудника');
     } finally {
       setLoading(false);
     }
   };
 
+  if (fetching) {
+    return <div className="loading">Загрузка...</div>;
+  }
+
   return (
     <div className="add-employee-page">
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate('/')}>
+        <button className="back-btn" onClick={() => navigate(`/employee/${id}`)}>
           ← Назад
         </button>
-        <h1>Добавление сотрудника</h1>
+        <h1>Редактирование сотрудника</h1>
       </div>
 
       <div className="form-container">
@@ -273,6 +301,7 @@ const AddEmployee: React.FC = () => {
                   <option value="active">Работает</option>
                   <option value="vacation">В отпуске</option>
                   <option value="sick">На больничном</option>
+                  <option value="dismissed">Уволен</option>
                 </select>
               </div>
             </div>
@@ -282,7 +311,7 @@ const AddEmployee: React.FC = () => {
             <button 
               type="button" 
               className="btn btn-secondary"
-              onClick={() => navigate('/')}
+              onClick={() => navigate(`/employee/${id}`)}
             >
               Отмена
             </button>
@@ -300,4 +329,4 @@ const AddEmployee: React.FC = () => {
   );
 };
 
-export default AddEmployee;
+export default EditEmployee;

@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
+const { authMiddleware } = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+
+// Apply auth to all report routes
+router.use(authMiddleware);
+
+// Apply role restriction — only admin, head, hr, acc can access reports
+router.use(roleMiddleware(['admin', 'head', 'hr', 'acc']));
 
 const buildFilters = (req) => {
   const { department_id, start_date, end_date } = req.query;
@@ -14,10 +22,7 @@ const buildFilters = (req) => {
     paramIndex++;
   }
 
-  // Для отчетов, где есть даты (например, вакансии или карьера)
   if (start_date && end_date) {
-     // Пример для точной даты: date_column BETWEEN ...
-     // Но для интервалов (отпуска) логика будет другой в самих запросах
      querySuffix += ` AND date_placeholder >= $${paramIndex} AND date_placeholder <= $${paramIndex + 1}`;
      params.push(start_date, end_date);
      paramIndex += 2;
@@ -26,7 +31,7 @@ const buildFilters = (req) => {
   return { querySuffix, params };
 };
 
-// 1. Общее количество сотрудников по департаментам +
+// 1. Общее количество сотрудников по департаментам
 router.get('/employee-count', async (req, res) => {
   try {
     const { department_id } = req.query;
@@ -52,7 +57,7 @@ router.get('/employee-count', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. Карьерный рост +
+// 2. Карьерный рост
 router.get('/career-growth', async (req, res) => {
   try {
     const { department_id, start_date, end_date } = req.query;
@@ -78,7 +83,6 @@ router.get('/career-growth', async (req, res) => {
       idx++;
     }
 
-    // Для карьеры используем BETWEEN, так как это точка во времени
     if (start_date && end_date) {
       query += ` AND c.order_date BETWEEN $${idx} AND $${idx + 1}`;
       params.push(start_date, end_date);
@@ -137,7 +141,7 @@ router.get('/payroll', async (req, res) => {
   }
 });
 
-// 5. График отпусков ++
+// 5. График отпусков
 router.get('/vacations', async (req, res) => {
   try {
     const { department_id, start_date, end_date } = req.query;
@@ -163,7 +167,6 @@ router.get('/vacations', async (req, res) => {
       paramIndex++;
     }
 
-    // Те же условия пересечения для таблицы
     if (start_date && end_date) {
       query += ` AND v.start_date <= $${paramIndex} AND v.end_date >= $${paramIndex + 1}`;
       params.push(end_date, start_date);
@@ -221,7 +224,7 @@ router.get('/chart/employees-by-dept', async (req, res) => {
   res.json(result.rows);
 });
 
-// 8. Данные для графика: фонд ЗП по отделам (Bar Chart) +
+// 8. Данные для графика: фонд ЗП по отделам (Bar Chart)
 router.get('/chart/payroll-by-dept', async (req, res) => {
   try {
     const { department_id } = req.query;
@@ -243,30 +246,11 @@ router.get('/chart/payroll-by-dept', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 9. Данные для графика: текучесть кадров (Pie Chart) +
+// 9. Данные для графика: текучесть кадров (Pie Chart)
 router.get('/chart/turnover-pie', async (req, res) => {
   try {
     const { department_id } = req.query;
-    let baseQuery = `FROM employees WHERE 1=1`;
     const params = [];
-    if (department_id) {
-      baseQuery += ` AND department_id = $1`;
-      params.push(department_id);
-    }
-
-    // Union все еще нужен, но с общим WHERE
-    const query = `
-      SELECT 'Работает' as name, COUNT(*) as value, '#28a745' as color ${baseQuery} AND status = 'active'
-      UNION ALL
-      SELECT 'В отпуске', COUNT(*), '#ffc107' ${baseQuery} AND status = 'vacation'
-      UNION ALL
-      SELECT 'На больничном', COUNT(*), '#dc3545' ${baseQuery} AND status = 'sick'
-      UNION ALL
-      SELECT 'Уволен', COUNT(*), '#6c757d' ${baseQuery} AND status = 'dismissed'
-    `;
-    
-    // Примечание: UNION ALL с разными WHERE условиями требует аккуратности. 
-    // Проще сделать группировку:
     const simpleQuery = `
       SELECT 
         CASE status 
@@ -287,17 +271,17 @@ router.get('/chart/turnover-pie', async (req, res) => {
       GROUP BY status
     `;
 
+    if (department_id) params.push(department_id);
     const result = await pool.query(simpleQuery, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 10. Данные для графика: отпуска по месяцам (Line Chart) +
+// 10. Данные для графика: отпуска по месяцам (Line Chart)
 router.get('/chart/vacations-by-month', async (req, res) => {
   try {
     const { department_id, start_date, end_date } = req.query;
     
-    // Базовый запрос
     let query = `
       SELECT 
         TO_CHAR(v.start_date, 'YYYY-MM') as month,
@@ -315,11 +299,9 @@ router.get('/chart/vacations-by-month', async (req, res) => {
       idx++;
     }
 
-    // ЛОГИКА ПЕРЕСЕЧЕНИЯ ИНТЕРВАЛОВ:
-    // Запись берется, если она началась ДО конца фильтра И закончилась ПОСЛЕ начала фильтра
     if (start_date && end_date) {
       query += ` AND v.start_date <= $${idx} AND v.end_date >= $${idx + 1}`;
-      params.push(end_date, start_date); // Обратите внимание на порядок аргументов
+      params.push(end_date, start_date);
     }
 
     query += ` GROUP BY TO_CHAR(v.start_date, 'YYYY-MM') ORDER BY month ASC`;
@@ -348,7 +330,6 @@ router.get('/chart/career-types', async (req, res) => {
       ORDER BY value DESC
     `;
     const result = await pool.query(query);
-    // Добавляем цвета
     const colors = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#6f42c1'];
     res.json(result.rows.map((row, i) => ({
       ...row,

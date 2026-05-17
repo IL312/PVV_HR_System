@@ -1,0 +1,238 @@
+@import '../styles/variables.css';
+
+.vacations-page {
+  padding: var(--space-xl);
+}
+
+.vacations-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+}
+
+.vacations-header h1 {
+  font-size: var(--font-xl);
+  color: var(--text-page-header);
+}
+
+.vacations-tabs {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  border-bottom: 2px solid var(--border-light);
+  padding-bottom: var(--space-sm);
+}
+
+.vacations-tabs .tab-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-base);
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.vacations-tabs .tab-btn:hover {
+  background: var(--bg-table-header);
+  color: var(--text-primary);
+}
+
+.vacations-tabs .tab-btn.active {
+  background: var(--color-primary);
+  color: var(--bg-white);
+}
+
+.vacations-actions {
+  margin-bottom: var(--space-lg);
+}
+
+.vacations-filters {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--border-tab);
+  background: var(--bg-white);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--font-base);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.filter-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.filter-btn.active {
+  background: var(--color-primary);
+  color: var(--bg-white);
+  border-color: var(--color-primary);
+}
+
+.vacations-table-wrapper {
+  overflow-x: auto;
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-report);
+}
+
+.vacations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-base);
+  color: var(--text-primary);
+}
+
+.vacations-table th {
+  background: var(--bg-table-header);
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-table-header);
+  border-bottom: 2px solid var(--border-table);
+  white-space: nowrap;
+}
+
+.vacations-table td {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid var(--border-table-row);
+}
+
+.vacations-table tbody tr:hover {
+  background: var(--bg-table-hover);
+}
+
+.vacation-status-badge {
+  display: inline-block;
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.comment-cell {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions-cell {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: var(--space-sm) var(--space-md);
+  font-size: var(--font-sm);
+  height: fit-content;
+}
+
+.btn-success {
+  background: var(--status-success);
+  color: var(--bg-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-success:hover {
+  opacity: 0.9;
+}
+
+.btn-danger {
+  background: var(--status-danger);
+  color: var(--bg-white);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.btn-danger:hover {
+  opacity: 0.9;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--font-base);
+  text-decoration: underline;
+}
+
+.btn-link.btn-danger {
+  color: var(--status-danger);
+}
+
+.vacation-form-page {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--bg-white);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xxl);
+  max-width: 500px;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+}
+
+.modal-content.modal-large {
+  max-width: 700px;
+}
+
+.modal-content h3 {
+  margin-bottom: var(--space-lg);
+  color: var(--text-page-header);
+}
+
+.modal-employee {
+  color: var(--text-secondary);
+  font-size: var(--font-base);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-md);
+  background: var(--bg-table-header);
+  border-radius: var(--radius-md);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-lg);
+  margin-top: var(--space-xl);
+}
+
+.vacations-page h2 {
+  font-size: var(--font-lg);
+  color: var(--text-page-header);
+  margin-bottom: var(--space-lg);
+}

@@ -221,6 +221,8 @@ async function seed() {
     console.log('🌱 Starting database seeding...');
 
     // Clear existing data
+    await pool.query('DELETE FROM orders');
+    await pool.query('DELETE FROM vacation_requests');
     await pool.query('DELETE FROM users');
     await pool.query('DELETE FROM roles');
     await pool.query('DELETE FROM career_types');
@@ -235,6 +237,8 @@ async function seed() {
     await pool.query('ALTER SEQUENCE users_id_seq RESTART WITH 1');
     await pool.query('ALTER SEQUENCE career_types_id_seq RESTART WITH 1');
     await pool.query('ALTER SEQUENCE roles_id_seq RESTART WITH 1');
+    await pool.query('ALTER SEQUENCE vacation_requests_id_seq RESTART WITH 1');
+    await pool.query('ALTER SEQUENCE orders_id_seq RESTART WITH 1');
 
     // Insert departments
     for (const dept of departments) {
@@ -263,10 +267,10 @@ async function seed() {
     }
     console.log('✅ Roles inserted');
 
-      // Insert roles
+      // Insert career types
     for (const type of careerTypes) {
       await pool.query(
-        'INSERT INTO roles (id, name) VALUES ($1, $2)',
+        'INSERT INTO career_types (id, name) VALUES ($1, $2)',
         [type.id, type.name]
       );
     }
@@ -301,13 +305,13 @@ async function seed() {
   for (let i = 1; i < 5; i++) {
     await pool.query(
       "INSERT INTO users (login, password_hash, role_id, employee_id) VALUES ($1, $2, $3, $4)",
-      [`hr${i}`, adminHash, 2, i + 1]
+      [`hr${i}`, adminHash, 3, i + 1]
     );
   };
   for (let i = 5; i < 9; i++) {
     await pool.query(
       "INSERT INTO users (login, password_hash, role_id, employee_id) VALUES ($1, $2, $3, $4)",
-      [`head${i}`, adminHash, 3, i + 1]
+      [`head${i}`, adminHash, 2, i + 1]
     );
   };
   for (let i = 9; i < employees.length; i++) {
@@ -317,6 +321,57 @@ async function seed() {
     );
   };
   console.log('✅ Users inserted');
+
+  // Seed vacation requests
+  const vacationRequests = [
+    { employee_id: 6, start_date: '2024-07-01', end_date: '2024-07-14', type: 'annual', status: 'pending', comment: 'Планирую летний отпуск' },
+    { employee_id: 7, start_date: '2024-06-15', end_date: '2024-06-28', type: 'annual', status: 'approved', comment: '' },
+    { employee_id: 8, start_date: '2024-08-01', end_date: '2024-08-10', type: 'unpaid', status: 'pending', comment: 'Семейные обстоятельства' },
+    { employee_id: 10, start_date: '2024-05-20', end_date: '2024-06-03', type: 'annual', status: 'ordered', comment: '' },
+    { employee_id: 12, start_date: '2024-09-01', end_date: '2024-09-14', type: 'annual', status: 'rejected', comment: '', rejection_reason: 'В этот период высокая загрузка' },
+    { employee_id: 15, start_date: '2024-04-10', end_date: '2024-04-20', type: 'sick', status: 'approved', comment: '' },
+  ];
+
+  for (const vr of vacationRequests) {
+    await pool.query(
+      `INSERT INTO vacation_requests (employee_id, start_date, end_date, type, status, comment, approver_id, approval_date, rejection_reason)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        vr.employee_id, vr.start_date, vr.end_date, vr.type, vr.status,
+        vr.comment || null,
+        vr.status === 'approved' || vr.status === 'rejected' ? 2 : null,
+        vr.status === 'approved' ? new Date().toISOString() : null,
+        vr.rejection_reason || null
+      ]
+    );
+  }
+  console.log('✅ Vacation requests inserted');
+
+  // Seed orders
+  const orders = [
+    {
+      order_number: 'П-001',
+      order_date: '2024-05-15',
+      type: 'vacation',
+      employee_id: 10,
+      vacation_request_id: 4,
+      content: 'Предоставить ежегодный оплачиваемый отпуск сроком на 14 календарных дней с 20.05.2024 по 03.06.2024.',
+      signed_by: 'Петрова Л.О.',
+      created_by: 3
+    },
+  ];
+
+  for (const order of orders) {
+    await pool.query(
+      `INSERT INTO orders (order_number, order_date, type, employee_id, vacation_request_id, content, signed_by, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [
+        order.order_number, order.order_date, order.type, order.employee_id,
+        order.vacation_request_id, order.content, order.signed_by, order.created_by
+      ]
+    );
+  }
+  console.log('✅ Orders inserted');
 
 
     console.log(`🎉 Seeding completed! Total employees: ${employees.length}`);

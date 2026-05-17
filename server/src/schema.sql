@@ -74,6 +74,37 @@ CREATE TABLE IF NOT EXISTS vacations (
     type VARCHAR(50) NOT NULL
 );
 
+-- Vacation requests table (approval workflow)
+CREATE TABLE IF NOT EXISTS vacation_requests (
+    id SERIAL PRIMARY KEY,
+    employee_id INTEGER REFERENCES employees(id) NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    comment TEXT,
+    approver_id INTEGER REFERENCES employees(id),
+    approval_date TIMESTAMP,
+    rejection_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Orders table (general for all order types)
+CREATE TABLE IF NOT EXISTS orders (
+    id SERIAL PRIMARY KEY,
+    order_number VARCHAR(50) NOT NULL,
+    order_date DATE NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    employee_id INTEGER REFERENCES employees(id) NOT NULL,
+    vacation_request_id INTEGER REFERENCES vacation_requests(id),
+    content TEXT NOT NULL,
+    signed_by VARCHAR(100) NOT NULL,
+    created_by INTEGER REFERENCES employees(id),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Roles table
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,

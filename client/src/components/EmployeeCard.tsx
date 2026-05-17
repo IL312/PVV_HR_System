@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Employee } from '../types';
 import declOfYears from '../utils';
+import './EmployeeCard.css';
 
 interface EmployeeCardProps {
   employee: Employee;

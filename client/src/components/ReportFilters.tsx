@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { employeeApi } from '../api/employeeApi';
 import type { Department } from '../types';
+import './ReportFilters.css';
 
 interface ReportFiltersProps {
   filters: {

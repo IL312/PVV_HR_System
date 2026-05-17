@@ -2,6 +2,7 @@ import React from 'react';
 import type { Employee } from '../types';
 import avatar from '../assets/avatar.png';
 import EditIcon from '../assets/icons/edit.png';
+import './ProfileCard.css';
 
 interface ProfileCardProps {
   user: Employee;

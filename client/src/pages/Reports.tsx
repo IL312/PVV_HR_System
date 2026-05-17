@@ -5,6 +5,7 @@ import PieChartComponent from '../components/charts/PieChartComponent';
 import LineChartComponent from '../components/charts/LineChartComponent';
 import ReportFilters from '../components/ReportFilters';
 import type { ReportRow, ChartDataPoint } from '../types';
+import './Reports.css';
 
 // Конфигурация отчетов. Теперь мы связываем таблицу и график в одном элементе.
 interface ReportConfig {

@@ -3,6 +3,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import type { ChartDataPoint } from '../../types';
+import './ChartComponent.css';
 
 
 interface LineChartProps {

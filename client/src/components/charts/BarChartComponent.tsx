@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import type { ChartDataPoint } from '../../types';
+import './ChartComponent.css';
 
 interface BarChartProps {
   data: ChartDataPoint[];

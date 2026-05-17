@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import EmployeeCard from '../components/EmployeeCard';
 import FilterPanel from '../components/FilterPanel';
 import ProfileCard from '../components/ProfileCard';
 import type { Employee, EmployeeFilters } from '../types';
 import { employeeApi } from '../api/employeeApi';
+import { useAuth } from '../context/AuthContext';
+import { useRole, ROLES } from '../hooks/useRole';
+import './EmployeeDirectory.css';
 
 const EmployeeDirectory: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { hasAnyRole } = useRole();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [currentUser, setCurrentUser] = useState<Employee | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Состояние фильтров хранится здесь
   const [filters, setFilters] = useState<EmployeeFilters>({
     department_id: undefined,
     position_id: undefined,
@@ -19,23 +25,20 @@ const EmployeeDirectory: React.FC = () => {
     search: ''
   });
 
-  // Загружаем профиль пользователя один раз
   useEffect(() => {
     const loadUser = async () => {
-        const all = await employeeApi.getAll({});
-        const user = all.find((e: Employee) => e.id === 1);
-        setCurrentUser(user || null);
+      if (user?.employee?.id) {
+        const emp = await employeeApi.getById(user.employee.id);
+        setCurrentUser(emp || null);
+      }
     }
     loadUser();
-  }, []);
+  }, [user?.employee?.id]);
 
-  // useCallback гарантирует, что ссылка на функцию останется прежней
-  // это важно для оптимизации
   const handleFilterChange = useCallback((newFilters: EmployeeFilters) => {
     setFilters(newFilters);
   }, []);
 
-  // Эффект для загрузки данных сотрудников при изменении фильтров
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -54,6 +57,12 @@ const EmployeeDirectory: React.FC = () => {
 
   if (loading && employees.length === 0) {
     return <div className="loading">Загрузка...</div>;
+  }
+
+  if (!hasAnyRole([ROLES.ADMIN, ROLES.HEAD, ROLES.HR, ROLES.ACC]) && currentUser) {
+    return (
+      <Navigate to={`/employee/${currentUser.id}`} replace />
+    );
   }
 
   return (
