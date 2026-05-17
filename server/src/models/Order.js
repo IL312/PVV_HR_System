@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 
 class Order {
+  // Получить все приказы
   static async findAll(filters = {}) {
     let query = `
       SELECT 
@@ -40,6 +41,7 @@ class Order {
     return result.rows;
   }
 
+  // Получить приказ по ID
   static async findById(id) {
     const query = `
       SELECT 

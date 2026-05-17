@@ -28,6 +28,7 @@ class Employee {
       WHERE 1=1
     `;
     
+    // Определить параметры для фильтрации сотрудников
     const params = [];
     let paramIndex = 1;
 

@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { Employee, Department, Position, EmployeeFilters } from '../types';
+import type { Employee } from '../types';
 
 const API_URL = '/api';
 

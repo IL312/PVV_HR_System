@@ -7,13 +7,13 @@ const Position = require('../models/Position');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Apply auth to all employee routes
+// Подтвердить авторизацию для всех путей (routes)
 router.use(authMiddleware);
 
-// Get all employees with filters
+// Получить всех сотрудников по фильтру
 router.get('/', async (req, res) => {
   try {
-    // common users can only see their own profile
+    // Обычные сотрудники могут просматривать только свой профиль
     if (req.user.role === 'common') {
       const employee = await Employee.findById(req.user.employee_id);
       return res.json(employee ? [employee] : []);
@@ -36,10 +36,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get employee by ID
+// ППолучить сотрудника по ID
 router.get('/:id', async (req, res) => {
   try {
-    // common users can only view their own profile
+    // Обычные сотрудники могут просматривать только свой профиль
     if (req.user.role === 'common' && req.params.id !== String(req.user.employee_id)) {
       return res.status(403).json({ error: 'Недостаточно прав для просмотра' });
     }
@@ -55,7 +55,7 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Get all departments
+// Получить все отделы
 router.get('/meta/departments', async (req, res) => {
   try {
     const departments = await Department.findAll();
@@ -66,7 +66,7 @@ router.get('/meta/departments', async (req, res) => {
   }
 });
 
-// Get all positions
+// Получить все должности
 router.get('/meta/positions', async (req, res) => {
   try {
     const positions = await Position.findAll();
@@ -77,7 +77,7 @@ router.get('/meta/positions', async (req, res) => {
   }
 });
 
-// Create new employee — admin and hr only
+// Создать нового сотрдуника (hr и admin)
 router.post('/', roleMiddleware(['admin', 'hr']), async (req, res) => {
   try {
     const employeeData = req.body;
@@ -118,7 +118,7 @@ router.post('/', roleMiddleware(['admin', 'hr']), async (req, res) => {
   }
 });
 
-// Update employee — admin only
+// ОБновить данные сотрдуника (только admin)
 router.put('/:id', roleMiddleware(['admin']), async (req, res) => {
   try {
     const employeeData = req.body;

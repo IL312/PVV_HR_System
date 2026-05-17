@@ -186,7 +186,8 @@ class VacationRequest {
   static async approve(id, approverId) {
     const query = `
       UPDATE vacation_requests
-      SET status = 'approved', approver_id = $1, approval_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      SET status = 'approved', approver_id = $1, 
+        approval_date = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = $2
       RETURNING *
     `;
