@@ -4,32 +4,8 @@ const pool = require('../config/db');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 
-// Apply auth to all report routes
 router.use(authMiddleware);
-
-// Apply role restriction — only admin, head, hr, acc can access reports
 router.use(roleMiddleware(['admin', 'head', 'hr', 'acc']));
-
-const buildFilters = (req) => {
-  const { department_id, start_date, end_date } = req.query;
-  let querySuffix = '';
-  const params = [];
-  let paramIndex = 1;
-
-  if (department_id) {
-    querySuffix += ` AND e.department_id = $${paramIndex}`;
-    params.push(department_id);
-    paramIndex++;
-  }
-
-  if (start_date && end_date) {
-     querySuffix += ` AND date_placeholder >= $${paramIndex} AND date_placeholder <= $${paramIndex + 1}`;
-     params.push(start_date, end_date);
-     paramIndex += 2;
-  }
-
-  return { querySuffix, params };
-};
 
 // 1. Общее количество сотрудников по департаментам
 router.get('/employee-count', async (req, res) => {
@@ -37,10 +13,10 @@ router.get('/employee-count', async (req, res) => {
     const { department_id } = req.query;
     let query = `
       SELECT 
-             d.name as name, 
-             COUNT(e.id) as value,
-             COUNT(CASE WHEN e.status = 'active' THEN 1 END) as active,
-             COUNT(CASE WHEN e.status IN ('vacation', 'sick') THEN 1 END) as absent
+        d.name, 
+        COUNT(e.id) as value,
+        COUNT(CASE WHEN e.status = 'active' THEN 1 END) as active,
+        COUNT(CASE WHEN e.status IN ('vacation', 'sick') THEN 1 END) as absent
       FROM departments d
       LEFT JOIN employees e ON d.id = e.department_id
       WHERE 1=1
@@ -66,7 +42,7 @@ router.get('/career-growth', async (req, res) => {
         e.last_name || ' ' || e.first_name as employee,
         d.name as department,
         ct.name as type_name,
-        c.order_date as date,
+        c.order_date,
         c.basis
       FROM careers c
       JOIN employees e ON c.employee_id = e.id
@@ -100,17 +76,17 @@ router.get('/turnover', async (req, res) => {
   try {
     const query = `
       SELECT 
-        d.name as "Департамент",
-        COUNT(e.id) as "Кол-во сотрудников",
-        COUNT(CASE WHEN e.status = 'dismissed' THEN 1 END) as "Кол-во ушедших",
+        d.name as department,
+        COUNT(e.id) as total_employees,
+        COUNT(CASE WHEN e.status = 'dismissed' THEN 1 END) as dismissed_count,
         ROUND(
           COUNT(CASE WHEN e.status = 'dismissed' THEN 1 END)::numeric / 
           NULLIF(COUNT(e.id), 0) * 100, 2
-        ) as "Процент текучки"
+        ) as turnover_percent
       FROM employees e
       JOIN departments d ON e.department_id = d.id
       GROUP BY d.id, d.name
-      ORDER BY "Процент текучки" DESC NULLS LAST
+      ORDER BY turnover_percent DESC NULLS LAST
     `;
     const result = await pool.query(query);
     res.json(result.rows);
@@ -124,15 +100,15 @@ router.get('/payroll', async (req, res) => {
   try {
     const query = `
       SELECT 
-        COALESCE(d.name, 'ИТОГО') as "Департамент",
-        COUNT(e.id) as "Кол-во сотрудников",
-        SUM(e.salary) as "Общая выручка",
-        ROUND(AVG(e.salary), 2) as "Средняя ЗП"
+        COALESCE(d.name, 'ИТОГО') as department,
+        COUNT(e.id) as employee_count,
+        SUM(e.salary) as total_salary,
+        ROUND(AVG(e.salary), 2) as avg_salary
       FROM employees e
       LEFT JOIN departments d ON e.department_id = d.id
       WHERE e.status = 'active'
       GROUP BY GROUPING SETS ((d.name), ())
-      ORDER BY "Департамент" NULLS LAST
+      ORDER BY department NULLS LAST
     `;
     const result = await pool.query(query);
     res.json(result.rows);
@@ -141,7 +117,7 @@ router.get('/payroll', async (req, res) => {
   }
 });
 
-// 5. График отпусков
+// 5. График отпусков (из vacation_requests со статусом approved/ordered)
 router.get('/vacations', async (req, res) => {
   try {
     const { department_id, start_date, end_date } = req.query;
@@ -149,13 +125,14 @@ router.get('/vacations', async (req, res) => {
       SELECT 
         e.last_name || ' ' || e.first_name as employee,
         d.name as department,
-        v.start_date,
-        v.end_date,
-        v.type
-      FROM vacations v
-      JOIN employees e ON v.employee_id = e.id
+        vr.start_date,
+        vr.end_date,
+        vr.type,
+        vr.status
+      FROM vacation_requests vr
+      JOIN employees e ON vr.employee_id = e.id
       JOIN departments d ON e.department_id = d.id
-      WHERE 1=1
+      WHERE vr.status IN ('approved', 'ordered')
     `;
     
     const params = [];
@@ -168,17 +145,17 @@ router.get('/vacations', async (req, res) => {
     }
 
     if (start_date && end_date) {
-      query += ` AND v.start_date <= $${paramIndex} AND v.end_date >= $${paramIndex + 1}`;
+      query += ` AND vr.start_date <= $${paramIndex} AND vr.end_date >= $${paramIndex + 1}`;
       params.push(end_date, start_date);
     } else if (start_date) {
-      query += ` AND v.end_date >= $${paramIndex}`;
+      query += ` AND vr.end_date >= $${paramIndex}`;
       params.push(start_date);
     } else if (end_date) {
-      query += ` AND v.start_date <= $${paramIndex}`;
+      query += ` AND vr.start_date <= $${paramIndex}`;
       params.push(end_date);
     }
 
-    query += ` ORDER BY v.start_date ASC`;
+    query += ` ORDER BY vr.start_date ASC`;
 
     const result = await pool.query(query, params);
     res.json(result.rows);
@@ -190,18 +167,14 @@ router.get('/absences', async (req, res) => {
   try {
     const query = `
       SELECT 
-        e.last_name || ' ' || e.first_name as "Сотрудник",
-        d.name as "Департамент",
-        CASE 
-          WHEN e.status = 'vacation' THEN 'В отпуске'
-          WHEN e.status = 'sick' THEN 'На больничном'
-          ELSE e.status 
-        END as "Причина",
+        e.last_name || ' ' || e.first_name as employee,
+        d.name as department,
+        e.status,
         e.hire_date as since_date
       FROM employees e
       JOIN departments d ON e.department_id = d.id
       WHERE e.status IN ('vacation', 'sick')
-      ORDER BY "Сотрудник"
+      ORDER BY employee
     `;
     const result = await pool.query(query);
     res.json(result.rows);
@@ -210,7 +183,7 @@ router.get('/absences', async (req, res) => {
   }
 });
 
-// 7. Данные для графика: сотрудники по отделам (Bar Chart)
+// 7. Данные для графика: сотрудники по отделам (Pie Chart)
 router.get('/chart/employees-by-dept', async (req, res) => {
   const query = `
     SELECT d.name, 
@@ -229,7 +202,7 @@ router.get('/chart/payroll-by-dept', async (req, res) => {
   try {
     const { department_id } = req.query;
     let query = `
-      SELECT d.name as name, SUM(e.salary) as value, COUNT(e.id) as employee_count
+      SELECT d.name, SUM(e.salary) as value, COUNT(e.id) as employee_count
       FROM employees e
       JOIN departments d ON e.department_id = d.id
       WHERE e.status = 'active'
@@ -251,7 +224,7 @@ router.get('/chart/turnover-pie', async (req, res) => {
   try {
     const { department_id } = req.query;
     const params = [];
-    const simpleQuery = `
+    const query = `
       SELECT 
         CASE status 
           WHEN 'active' THEN 'Работает' 
@@ -272,23 +245,23 @@ router.get('/chart/turnover-pie', async (req, res) => {
     `;
 
     if (department_id) params.push(department_id);
-    const result = await pool.query(simpleQuery, params);
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 10. Данные для графика: отпуска по месяцам (Line Chart)
+// 10. Данные для графика: отпуска по месяцам (Line Chart) — из vacation_requests
 router.get('/chart/vacations-by-month', async (req, res) => {
   try {
     const { department_id, start_date, end_date } = req.query;
     
     let query = `
       SELECT 
-        TO_CHAR(v.start_date, 'YYYY-MM') as month,
-        COUNT(v.id) as value
-      FROM vacations v
-      JOIN employees e ON v.employee_id = e.id
-      WHERE 1=1
+        TO_CHAR(vr.start_date, 'YYYY-MM') as month,
+        COUNT(vr.id) as value
+      FROM vacation_requests vr
+      JOIN employees e ON vr.employee_id = e.id
+      WHERE vr.status IN ('approved', 'ordered')
     `;
     const params = [];
     let idx = 1;
@@ -300,11 +273,11 @@ router.get('/chart/vacations-by-month', async (req, res) => {
     }
 
     if (start_date && end_date) {
-      query += ` AND v.start_date <= $${idx} AND v.end_date >= $${idx + 1}`;
+      query += ` AND vr.start_date <= $${idx} AND vr.end_date >= $${idx + 1}`;
       params.push(end_date, start_date);
     }
 
-    query += ` GROUP BY TO_CHAR(v.start_date, 'YYYY-MM') ORDER BY month ASC`;
+    query += ` GROUP BY TO_CHAR(vr.start_date, 'YYYY-MM') ORDER BY month ASC`;
 
     const result = await pool.query(query, params);
     
@@ -322,7 +295,7 @@ router.get('/chart/career-types', async (req, res) => {
   try {
     const query = `
       SELECT 
-        ct.name as name,
+        ct.name,
         COUNT(c.id)::integer as value
       FROM careers c
       JOIN career_types ct ON c.type_id = ct.id
@@ -333,6 +306,8 @@ router.get('/chart/career-types', async (req, res) => {
     const colors = ['#007bff', '#28a745', '#ffc107', '#17a2b8', '#6f42c1'];
     res.json(result.rows.map((row, i) => ({
       ...row,
+      name: row.name,
+      value: row.value,
       color: colors[i % colors.length]
     })));
   } catch (err) {

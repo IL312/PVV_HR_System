@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRole, ROLES } from '../hooks/useRole';
 import HomeIcon from '../assets/icons/home.png';
 import SettingsIcon from '../assets/icons/settings.png';
+import DocIcon from '../assets/icons/document.png';
 import DataIcon from '../assets/icons/data.png';
 import UserIcon from '../assets/icons/user.png';
 import LogoutIcon from '../assets/icons/logout.png';
@@ -18,7 +19,7 @@ const Sidebar: React.FC = () => {
   const menuItems = [
     { icon: HomeIcon, path: '/', label: 'Главная' },
     ...(isAdmin() ? [{ icon: SettingsIcon, path: '/settings', label: 'Настройки' }] : []),
-    { icon: DataIcon, path: '/vacations', label: 'Документы' },
+    { icon: DocIcon, path: '/vacations', label: 'Документы' },
     ...(hasAnyRole([ROLES.ADMIN, ROLES.HEAD, ROLES.HR, ROLES.ACC])
       ? [{ icon: DataIcon, path: '/reports', label: 'Отчёты' }]
       : []),

@@ -7,14 +7,14 @@ import ReportFilters from '../components/ReportFilters';
 import type { ReportRow, ChartDataPoint } from '../types';
 import './Reports.css';
 
-// Конфигурация отчетов. Теперь мы связываем таблицу и график в одном элементе.
 interface ReportConfig {
   id: string;
   label: string;
   tableEndpoint: string;
-  chartEndpoint?: string;   // Если есть график
+  chartEndpoint?: string;
   chartType?: 'bar' | 'pie' | 'line';
-  chartTitle?: string;      // Заголовок для графика
+  chartTitle?: string;
+  columnLabels: Record<string, string>;
 }
 
 const REPORTS_CONFIG: ReportConfig[] = [
@@ -24,7 +24,13 @@ const REPORTS_CONFIG: ReportConfig[] = [
     tableEndpoint: '/employee-count',
     chartEndpoint: '/chart/employees-by-dept',
     chartType: 'pie',
-    chartTitle: 'Распределение сотрудников по отделам'
+    chartTitle: 'Распределение сотрудников по отделам',
+    columnLabels: {
+      name: 'Отдел',
+      value: 'Кол-во',
+      active: 'Активных',
+      absent: 'Отсутствующих',
+    },
   },
   {
     id: 'payroll',
@@ -32,7 +38,13 @@ const REPORTS_CONFIG: ReportConfig[] = [
     tableEndpoint: '/payroll',
     chartEndpoint: '/chart/payroll-by-dept',
     chartType: 'bar',
-    chartTitle: 'Фонд ЗП по отделам'
+    chartTitle: 'Фонд ЗП по отделам',
+    columnLabels: {
+      department: 'Отдел',
+      employee_count: 'Кол-во сотрудников',
+      total_salary: 'Общий фонд ЗП',
+      avg_salary: 'Средняя ЗП',
+    },
   },
   {
     id: 'turnover',
@@ -40,7 +52,13 @@ const REPORTS_CONFIG: ReportConfig[] = [
     tableEndpoint: '/turnover',
     chartEndpoint: '/chart/turnover-pie',
     chartType: 'pie',
-    chartTitle: 'Статусы сотрудников'
+    chartTitle: 'Статусы сотрудников',
+    columnLabels: {
+      department: 'Отдел',
+      total_employees: 'Всего сотрудников',
+      dismissed_count: 'Уволено',
+      turnover_percent: 'Текучесть (%)',
+    },
   },
   {
     id: 'vacations',
@@ -48,7 +66,15 @@ const REPORTS_CONFIG: ReportConfig[] = [
     tableEndpoint: '/vacations',
     chartEndpoint: '/chart/vacations-by-month',
     chartType: 'line',
-    chartTitle: 'Динамика отпусков по месяцам'
+    chartTitle: 'Динамика отпусков по месяцам',
+    columnLabels: {
+      employee: 'Сотрудник',
+      department: 'Отдел',
+      start_date: 'Начало',
+      end_date: 'Окончание',
+      type: 'Тип',
+      status: 'Статус',
+    },
   },
   {
     id: 'career',
@@ -56,14 +82,43 @@ const REPORTS_CONFIG: ReportConfig[] = [
     tableEndpoint: '/career-growth',
     chartEndpoint: '/chart/career-types',
     chartType: 'pie',
-    chartTitle: 'Типы карьерных изменений'
+    chartTitle: 'Типы карьерных изменений',
+    columnLabels: {
+      employee: 'Сотрудник',
+      department: 'Отдел',
+      type_name: 'Тип',
+      order_date: 'Дата',
+      basis: 'Основание',
+    },
   },
   {
     id: 'absences',
     label: 'Отсутствующие сотрудники',
-    tableEndpoint: '/absences'
-  }
+    tableEndpoint: '/absences',
+    columnLabels: {
+      employee: 'Сотрудник',
+      department: 'Отдел',
+      status: 'Статус',
+      since_date: 'С даты',
+    },
+  },
 ];
+
+const VACATION_TYPE_LABELS: Record<string, string> = {
+  annual: 'Ежегодный',
+  unpaid: 'Без содержания',
+  maternity: 'Декретный',
+  sick: 'Больничный',
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Работает',
+  vacation: 'В отпуске',
+  sick: 'На больничном',
+  dismissed: 'Уволен',
+  approved: 'Утверждён',
+  ordered: 'Приказ оформлен',
+};
 
 const Reports: React.FC = () => {
   const [activeReportId, setActiveReportId] = useState<string>('employee-count');
@@ -86,7 +141,6 @@ const Reports: React.FC = () => {
 
       setLoading(true);
       try {
-        // Формируем Query String для запросов
         const queryParams = new URLSearchParams();
         if (filters.department_id) queryParams.append('department_id', filters.department_id);
         if (filters.start_date) queryParams.append('start_date', filters.start_date);
@@ -95,12 +149,10 @@ const Reports: React.FC = () => {
         const queryString = queryParams.toString();
         const suffix = queryString ? '?' + queryString : '';
 
-        // 1. Данные таблицы
         const tableUrl = `/api/reports${currentConfig.tableEndpoint}${suffix}`;
         const tableRes = await axios.get<ReportRow[]>(tableUrl);
         setTableData(tableRes.data);
 
-        // 2. Данные графика
         if (currentConfig.chartEndpoint) {
           const chartUrl = `/api/reports${currentConfig.chartEndpoint}${suffix}`;
           const chartRes = await axios.get<ChartDataPoint[]>(chartUrl);
@@ -123,8 +175,35 @@ const Reports: React.FC = () => {
     fetchData();
   }, [currentConfig, filters]);
 
-  const formatHeader = (key: string): string => 
-    key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const getLabel = (key: string): string => {
+    return currentConfig?.columnLabels[key] || key;
+  };
+
+  const formatCellValue = (key: string, value: any): string => {
+    if (value === null || value === undefined) return '—';
+    
+    if (key.includes('date')) {
+      return new Date(String(value)).toLocaleDateString('ru-RU');
+    }
+    
+    if (key === 'type' && currentConfig?.id === 'vacations') {
+      return VACATION_TYPE_LABELS[value] || value;
+    }
+    
+    if (key === 'status') {
+      return STATUS_LABELS[value] || value;
+    }
+    
+    if (key === 'total_salary' || key === 'avg_salary') {
+      return Number(value).toLocaleString('ru-RU') + ' ₽';
+    }
+    
+    if (key === 'turnover_percent') {
+      return Number(value).toFixed(2) + '%';
+    }
+
+    return String(value);
+  };
 
   const renderTable = () => {
     if (tableData.length === 0) return <p className="no-data">Нет данных</p>;
@@ -134,17 +213,13 @@ const Reports: React.FC = () => {
       <div className="table-wrapper">
         <table className="report-table">
           <thead>
-            <tr>{headers.map(h => <th key={h}>{formatHeader(h)}</th>)}</tr>
+            <tr>{headers.map(h => <th key={h}>{getLabel(h)}</th>)}</tr>
           </thead>
           <tbody>
             {tableData.map((row, i) => (
               <tr key={i}>
                 {headers.map(h => (
-                  <td key={h}>
-                    {row[h] !== null && row[h] !== undefined 
-                      ? (h.includes('date') ? new Date(String(row[h])).toLocaleDateString('ru-RU') : String(row[h])) 
-                      : '—'}
-                  </td>
+                  <td key={h}>{formatCellValue(h, row[h])}</td>
                 ))}
               </tr>
             ))}
@@ -184,7 +259,7 @@ const Reports: React.FC = () => {
           <LineChartComponent 
             data={chartData} 
             dataKey="value" 
-            nameKey="month" // Для линейного графика X-axis
+            nameKey="month" 
             title={currentConfig.chartTitle || ''} 
           />
         );
