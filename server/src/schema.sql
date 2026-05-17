@@ -41,15 +41,6 @@ CREATE TABLE IF NOT EXISTS employees (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Contracts table
-CREATE TABLE IF NOT EXISTS contracts (
-    id SERIAL PRIMARY KEY,
-    employee_id INTEGER REFERENCES employees(id),
-    number VARCHAR(50) NOT NULL,
-    start_date DATE NOT NULL,
-    end_date DATE
-);
-
 -- Career types table
 CREATE TABLE IF NOT EXISTS career_types (
     id SERIAL PRIMARY KEY,
