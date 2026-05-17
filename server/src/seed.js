@@ -193,9 +193,15 @@ const firstNames = ['Александр', 'Дмитрий', 'Сергей', 'А�
 const middleNames = ['Александрович', 'Дмитриевич', 'Сергеевич', 'Андреевич', 'Алексеевич', 'Николаевич', 'Владимирович', 'Михайлович', 'Игоревич', 'Артемович'];
 
 for (let i = 0; i < 23; i++) {
-  const deptId = [1, 3, 4][i % 3]; // IT, Finance, Sales
-  const posId = [4, 5, 6, 7][i % 4]; // Developer, Lead Dev, Sales, Accountant
+  const deptId = [1, 3, 4][i % 3];
+  const posId = [4, 5, 6, 7][i % 4];
   const salary = posId === 4 ? 60000 : posId === 5 ? 40000 : posId === 6 ? 35000 : 40000;
+  
+  let status = 'active';
+  if (i === 5) status = 'vacation';
+  if (i === 10) status = 'sick';
+  if (i === 15) status = 'dismissed';
+  if (i === 20) status = 'dismissed';
   
   employees.push({
     last_name: lastNames[i % lastNames.length],
@@ -211,7 +217,7 @@ for (let i = 0; i < 23; i++) {
     position_id: posId,
     hire_date: `${2020 + (i % 4)}-${String(1 + (i % 12)).padStart(2, '0')}-15`,
     salary: salary,
-    status: i === 5 ? 'vacation' : 'active' // One employee on vacation
+    status
   });
 }
 
@@ -223,6 +229,7 @@ async function seed() {
     // Clear existing data
     await pool.query('DELETE FROM orders');
     await pool.query('DELETE FROM vacation_requests');
+    await pool.query('DELETE FROM careers');
     await pool.query('DELETE FROM users');
     await pool.query('DELETE FROM roles');
     await pool.query('DELETE FROM career_types');
@@ -239,6 +246,7 @@ async function seed() {
     await pool.query('ALTER SEQUENCE roles_id_seq RESTART WITH 1');
     await pool.query('ALTER SEQUENCE vacation_requests_id_seq RESTART WITH 1');
     await pool.query('ALTER SEQUENCE orders_id_seq RESTART WITH 1');
+    await pool.query('ALTER SEQUENCE careers_id_seq RESTART WITH 1');
 
     // Insert departments
     for (const dept of departments) {
@@ -302,16 +310,16 @@ async function seed() {
     "INSERT INTO users (login, password_hash, role_id, employee_id) VALUES ($1, $2, $3, $4)",
     ['admin', adminHash, 1, 1]
   );
-  for (let i = 1; i < 5; i++) {
+  for (let i = 0; i < 4; i++) {
     await pool.query(
       "INSERT INTO users (login, password_hash, role_id, employee_id) VALUES ($1, $2, $3, $4)",
-      [`hr${i}`, adminHash, 3, i + 1]
+      [`head${i}`, adminHash, 2, i + 2]
     );
   };
-  for (let i = 5; i < 9; i++) {
+  for (let i = 0; i < 4; i++) {
     await pool.query(
       "INSERT INTO users (login, password_hash, role_id, employee_id) VALUES ($1, $2, $3, $4)",
-      [`head${i}`, adminHash, 2, i + 1]
+      [`hr${i}`, adminHash, 3, i + 6]
     );
   };
   for (let i = 9; i < employees.length; i++) {
@@ -322,14 +330,45 @@ async function seed() {
   };
   console.log('✅ Users inserted');
 
-  // Seed vacation requests
+  // Seed careers
+  const careers = [
+    { employee_id: 2, type_id: 1, order_date: '2021-06-15', basis: 'Приказ №1 от 15.06.2021' },
+    { employee_id: 3, type_id: 1, order_date: '2020-03-01', basis: 'Приказ №5 от 01.03.2020' },
+    { employee_id: 4, type_id: 1, order_date: '2019-08-20', basis: 'Приказ №12 от 20.08.2019' },
+    { employee_id: 5, type_id: 1, order_date: '2021-02-10', basis: 'Приказ №3 от 10.02.2021' },
+    { employee_id: 6, type_id: 1, order_date: '2022-01-10', basis: 'Приказ №1 от 10.01.2022' },
+    { employee_id: 10, type_id: 2, order_date: '2023-03-15', basis: 'Приказ №15 от 15.03.2023 — перевод на старшего разработчика' },
+    { employee_id: 12, type_id: 3, order_date: '2023-06-01', basis: 'Сертификат AWS Solutions Architect' },
+    { employee_id: 14, type_id: 4, order_date: '2023-12-20', basis: 'Лучший сотрудник года' },
+    { employee_id: 16, type_id: 5, order_date: '2024-01-15', basis: 'Приказ №2 от 15.01.2024 — перевод из Sales в IT' },
+    { employee_id: 18, type_id: 2, order_date: '2024-02-01', basis: 'Приказ №8 от 01.02.2024 — назначение ведущим бухгалтером' },
+    { employee_id: 20, type_id: 3, order_date: '2024-04-10', basis: 'Курсы повышения квалификации 1С' },
+    { employee_id: 22, type_id: 1, order_date: '2024-05-20', basis: 'Приказ №25 от 20.05.2024' },
+  ];
+
+  for (const career of careers) {
+    await pool.query(
+      `INSERT INTO careers (employee_id, type_id, order_date, basis) VALUES ($1, $2, $3, $4)`,
+      [career.employee_id, career.type_id, career.order_date, career.basis]
+    );
+  }
+  console.log('✅ Careers inserted');
+
+  // Seed vacation requests (расширенный набор для графика по месяцам)
   const vacationRequests = [
-    { employee_id: 6, start_date: '2024-07-01', end_date: '2024-07-14', type: 'annual', status: 'pending', comment: 'Планирую летний отпуск' },
-    { employee_id: 7, start_date: '2024-06-15', end_date: '2024-06-28', type: 'annual', status: 'approved', comment: '' },
-    { employee_id: 8, start_date: '2024-08-01', end_date: '2024-08-10', type: 'unpaid', status: 'pending', comment: 'Семейные обстоятельства' },
-    { employee_id: 10, start_date: '2024-05-20', end_date: '2024-06-03', type: 'annual', status: 'ordered', comment: '' },
-    { employee_id: 12, start_date: '2024-09-01', end_date: '2024-09-14', type: 'annual', status: 'rejected', comment: '', rejection_reason: 'В этот период высокая загрузка' },
-    { employee_id: 15, start_date: '2024-04-10', end_date: '2024-04-20', type: 'sick', status: 'approved', comment: '' },
+    { employee_id: 6, start_date: '2024-01-15', end_date: '2024-01-28', type: 'annual', status: 'ordered', comment: '' },
+    { employee_id: 7, start_date: '2024-02-01', end_date: '2024-02-14', type: 'annual', status: 'approved', comment: '' },
+    { employee_id: 8, start_date: '2024-03-10', end_date: '2024-03-24', type: 'annual', status: 'ordered', comment: '' },
+    { employee_id: 10, start_date: '2024-04-01', end_date: '2024-04-14', type: 'annual', status: 'approved', comment: '' },
+    { employee_id: 12, start_date: '2024-05-20', end_date: '2024-06-02', type: 'annual', status: 'ordered', comment: '' },
+    { employee_id: 14, start_date: '2024-06-15', end_date: '2024-06-28', type: 'annual', status: 'approved', comment: '' },
+    { employee_id: 15, start_date: '2024-07-01', end_date: '2024-07-14', type: 'annual', status: 'approved', comment: '' },
+    { employee_id: 18, start_date: '2024-07-15', end_date: '2024-07-28', type: 'annual', status: 'pending', comment: '' },
+    { employee_id: 20, start_date: '2024-08-01', end_date: '2024-08-14', type: 'unpaid', status: 'pending', comment: 'Семейные обстоятельства' },
+    { employee_id: 22, start_date: '2024-09-01', end_date: '2024-09-14', type: 'annual', status: 'rejected', comment: '', rejection_reason: 'Высокая загрузка' },
+    { employee_id: 9, start_date: '2024-04-10', end_date: '2024-04-20', type: 'sick', status: 'approved', comment: '' },
+    { employee_id: 11, start_date: '2024-05-05', end_date: '2024-05-15', type: 'sick', status: 'approved', comment: '' },
+    { employee_id: 13, start_date: '2024-03-01', end_date: '2024-03-14', type: 'maternity', status: 'ordered', comment: '' },
   ];
 
   for (const vr of vacationRequests) {
@@ -339,8 +378,8 @@ async function seed() {
       [
         vr.employee_id, vr.start_date, vr.end_date, vr.type, vr.status,
         vr.comment || null,
-        vr.status === 'approved' || vr.status === 'rejected' ? 2 : null,
-        vr.status === 'approved' ? new Date().toISOString() : null,
+        (vr.status === 'approved' || vr.status === 'ordered' || vr.status === 'rejected') ? 2 : null,
+        (vr.status === 'approved' || vr.status === 'ordered') ? new Date().toISOString() : null,
         vr.rejection_reason || null
       ]
     );
@@ -351,11 +390,41 @@ async function seed() {
   const orders = [
     {
       order_number: 'П-001',
+      order_date: '2024-01-10',
+      type: 'vacation',
+      employee_id: 6,
+      vacation_request_id: 1,
+      content: 'Предоставить ежегодный оплачиваемый отпуск сотруднику Зотовой Е.Д. сроком с 15.01.2024 по 28.01.2024.',
+      signed_by: 'Петрова Л.О.',
+      created_by: 3
+    },
+    {
+      order_number: 'П-002',
+      order_date: '2024-03-05',
+      type: 'vacation',
+      employee_id: 8,
+      vacation_request_id: 3,
+      content: 'Предоставить ежегодный оплачиваемый отпуск сотруднику Морсову О.В. сроком с 10.03.2024 по 24.03.2024.',
+      signed_by: 'Петрова Л.О.',
+      created_by: 3
+    },
+    {
+      order_number: 'П-003',
       order_date: '2024-05-15',
       type: 'vacation',
-      employee_id: 10,
-      vacation_request_id: 4,
-      content: 'Предоставить ежегодный оплачиваемый отпуск сроком на 14 календарных дней с 20.05.2024 по 03.06.2024.',
+      employee_id: 12,
+      vacation_request_id: 5,
+      content: 'Предоставить ежегодный оплачиваемый отпуск сотруднику Смирнову А.А. сроком с 20.05.2024 по 02.06.2024.',
+      signed_by: 'Петрова Л.О.',
+      created_by: 3
+    },
+    {
+      order_number: 'П-004',
+      order_date: '2024-02-25',
+      type: 'vacation',
+      employee_id: 13,
+      vacation_request_id: 13,
+      content: 'Предоставить отпуск по беременности и родам сотруднице Кузнецовой.',
       signed_by: 'Петрова Л.О.',
       created_by: 3
     },
